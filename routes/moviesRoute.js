@@ -58,14 +58,21 @@ const postNewMovie = async (req, res, next)=> {
     next(err);
   }
 }
-// Create a route for handling updates for every actor
-// on any field that is specified in the req.body.
-// The actor should be selected by lastName.
-
+// Create a route to give back only the names of the movies,
+//  who have been produced between two given years.
+// These years should be passed as parameters both.
+const getMoviesBetw = async (req, res, next)=> {
+  try {
+    let moviesBetw = await movieModel.find({productionYear: req.params.year},{productionYear:1,name:1,_id:0})
+  }
+  catch (err) {
+    next(err);
+  }
+}
 moviesRoute.get('/', home)
 moviesRoute.get('/movies', getAllMovies)
 moviesRoute.get('/movies/:director', getMoviesFromDir)
 moviesRoute.get('/movies/:num', getByRatio)
 moviesRoute.post('/movies', postNewMovie)
-
+moviesRoute.get('/movies/:year', getMoviesBetw)
 module.exports = moviesRoute;
