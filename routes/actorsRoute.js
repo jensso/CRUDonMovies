@@ -26,7 +26,20 @@ const updActor = async (req, res, next)=> {
     next(err);
   }
 }
-actorsRoute.delete('/actors/:name', delActor)
-actorsRoute.put('/actors/:name', updActor)
+// Lastly delete all actors, who have played in a given movie.
+// This movie should be passed as a parameter in url.
+const delByMovie = async (req, res, next)=> {
+  try {
+
+  let actorToDel = await actorModel.findOneAndDelete({ moviesPlayed: {$elemMatch: {$eq: req.params.nameOfMovie}} });
+  actorToDel ? res.status(200).send(`${actorToDel.lastName} was deleted`) : res.status(404).send('this movie does not match to the actor')
+  }
+  catch (err) {
+    next(err);
+  }
+}
+actorsRoute.delete('/:name', delActor)
+actorsRoute.put('/:name', updActor)
+actorsRoute.delete('/moviesPlayed/:nameOfMovie', delByMovie)
 
 module.exports = actorsRoute;

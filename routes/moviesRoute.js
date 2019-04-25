@@ -2,16 +2,6 @@ const express = require('express');
 const movieModel = require('../models/movieModel');
 const moviesRoute = express.Router();
 
-// Create a / home route that serves a static response inside a json response.
-// Give the proper statuses back.
-const home = async (req, res, next)=> {
-  try {
-    res.status(200).json("THIS IS HOME...not Sparta");
-  }
-  catch (err) {
-    next(err);
-  }
-}
 // Create a /movies router for handling a Get Request there,
 // when done give all the available movies back inside a json.
 const getAllMovies = async (req, res, next)=> {
@@ -40,8 +30,9 @@ const getMoviesFromDir = async (req, res, next)=> {
 // and returns only the top results specified by the number of the parameters.
 const getByRatio = async (req, res, next)=> {
   try {
-    let sortedByRatio = await movieModel.find( {imdb_ratio:{$gt: req.params.num} } )//.sort({imdb_ratio: 1,_id: 0});
-    sortedByRatio ? res.status(204).send(sortedByRatio) : next(err);
+    let sortedByRatio = await movieModel.find( {}  ,{name:1,imdb_ratio:1,_id:0})
+    .sort({imdb_ratio: -1}).limit(parseInt(req.params.num));
+    sortedByRatio ? res.status(200).json(sortedByRatio) : next(err);
   }
   catch (err) {
     next(err);
@@ -63,16 +54,41 @@ const postNewMovie = async (req, res, next)=> {
 // These years should be passed as parameters both.
 const getMoviesBetw = async (req, res, next)=> {
   try {
-    let moviesBetw = await movieModel.find({productionYear: req.params.year},{productionYear:1,name:1,_id:0})
+    let moviesBetw = await movieModel.find( {productionYear: {$gt:req.params.min, $lt:req.params.max}
+                                    } , {productionYear:1, name:1, _id:0} );
+                                    console.log(req.params.min);
+                                    console.log(req.params.max);
+      moviesBetw ? res.status(200).json(moviesBetw) : next(err);
+
   }
   catch (err) {
     next(err);
   }
 }
-moviesRoute.get('/', home)
-moviesRoute.get('/movies', getAllMovies)
-moviesRoute.get('/movies/:director', getMoviesFromDir)
-moviesRoute.get('/movies/:num', getByRatio)
-moviesRoute.post('/movies', postNewMovie)
-moviesRoute.get('/movies/:year', getMoviesBetw)
+// Create an aggregation route that returns all movies with the associated actors who play in
+// these movies by creating a referrence between these two models exactly as you did last time.
+const getActorsInMovies = async (req, res, next)=> {
+  try {
+    let actorsInMovies = await movieModel.aggregate([
+      {$lookup: {
+        from: "actors",
+        localField: "name",
+        foreignField: "moviesPlayed",
+        as: "actsIn",
+      } }
+    ])
+    res.status(200).json(actorsInMovies);
+  }
+  catch (err) {
+    next(err);
+  }
+}
+moviesRoute.get('/', getAllMovies)
+moviesRoute.get('/:director', getMoviesFromDir)
+moviesRoute.get('/ratio/:num', getByRatio)
+moviesRoute.post('/', postNewMovie)
+moviesRoute.get('/between/:min/:max', getMoviesBetw)
+moviesRoute.get('/aggregate/withActor', getActorsInMovies)
+
+
 module.exports = moviesRoute;
